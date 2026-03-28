@@ -41,7 +41,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "ANALYZE_EMAIL") {
     analyzeEmail(message.emailData)
       .then((result) => sendResponse({ success: true, result }))
-      .catch((error) => sendResponse({ success: false, error: error.message }));
+      .catch((error: Error) =>
+        sendResponse({ success: false, error: error.message }),
+      );
     return true;
   }
 });

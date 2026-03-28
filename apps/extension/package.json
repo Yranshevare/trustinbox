@@ -19,6 +19,7 @@
   "dependencies": {
     "@repo/ui-web": "workspace:^",
     "axios": "^1.13.2",
+    "better-auth": "^1.4.10",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
   },
