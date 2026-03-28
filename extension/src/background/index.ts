@@ -1,26 +1,31 @@
 import Browser from 'webextension-polyfill';
 
 Browser.runtime.onInstalled.addListener(() => {
-  console.log('Welcome to chrome ext starter. have a nice day!');
+  console.log('Welcome to TrustInBox extension!');
+
+  Browser.contextMenus.create({
+    id: 'openSidePanel',
+    title: 'Open TrustInBox',
+    contexts: ['page'],
+  });
+});
+
+Browser.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === 'openSidePanel' && tab?.id) {
+    // @ts-expect-error sidePanel exists in Chrome
+    await Browser.sidePanel.open({ tabId: tab.id });
+  }
 });
 
 Browser.action.onClicked.addListener((tab) => {
-  //@ts-expect-error
+  // @ts-expect-error sidePanel exists in Chrome
   Browser.sidePanel.open({ tabId: tab.id });
 });
 
-Browser.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
-  if (!details.url.includes('mail.google.com')) return;
-
-  const url = details.url;
-  if (url.includes('/inbox/') || url.includes('/d/') || url.includes('#inbox/') || url.includes('#d/')) {
-    setTimeout(async () => {
-      try {
-        const sidePanel = chrome.sidePanel as { open: (options: { tabId: number }) => Promise<void> };
-        await sidePanel.open({ tabId: details.tabId });
-      } catch (e) {
-        console.error('Failed to open side panel:', e);
-      }
-    }, 1000);
+Browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab.url?.includes('mail.google.com') && changeInfo.status === 'complete') {
+    Browser.action.setBadgeText({ tabId, text: '📧' });
+  } else {
+    Browser.action.setBadgeText({ tabId, text: '' });
   }
 });

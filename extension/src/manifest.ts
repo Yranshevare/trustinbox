@@ -29,7 +29,7 @@ export default defineManifest({
     48: 'icon48.png',
     128: 'icon128.png',
   },
-  permissions: ['activeTab', 'storage', 'sidePanel', 'scripting', 'webNavigation'],
+  permissions: ['activeTab', 'storage', 'sidePanel', 'scripting', 'webNavigation', 'contextMenus'],
   host_permissions: ['http://localhost:3000/*', 'https://your-production-domain.com/*', 'https://mail.google.com/*'],
   content_scripts: [
     {
