@@ -61,23 +61,23 @@ async function runSafeBrowsing(url: string): Promise<SafeBrowsingResult> {
 
 // Ml prediction
 async function predict(url: string): Promise<MlResponse> {
-    try {
-        const res = await mlClient.post("/predict", { url });
-        
-        if (!res) return { error: true, success: "error" };
+  try {
+    const res = await mlClient.post("/predict", { url });
 
-        return {
-            error: false,
-            success: "success",
-            raw: res.data.raw,
-            prediction: res.data.prediction,
-        }
-    } catch (error) {
-        return {
-            error: true,
-            success: "error",
-        };
-    }
+    if (!res) return { error: true, success: "error" };
+
+    return {
+      error: false,
+      success: "success",
+      raw: res.data.raw,
+      prediction: res.data.prediction,
+    };
+  } catch (error) {
+    return {
+      error: true,
+      success: "error",
+    };
+  }
 }
 
 function errorResponse(message: string, status: number): Response {
@@ -98,22 +98,21 @@ async function handleRequest(
     return errorResponse("Invalid domain", 422);
   }
 
+  //   console.log(raw)
+  // TODO: ml
+  const [dnsSettled, safeBrowsingSettled, mlResponse] =
+    await Promise.allSettled([
+      dnsPhishingCheck(domain),
+      runSafeBrowsing(`https://${domain}`),
+      predict(raw),
+    ]);
 
-//   console.log(raw)
-    // TODO: ml
-const [dnsSettled, safeBrowsingSettled, mlResponse] = await Promise.allSettled([
-    dnsPhishingCheck(domain),
-    runSafeBrowsing(`https://${domain}`),
-    predict(raw),
-]);
-
-//   console.log({ dnsSettled, safeBrowsingSettled, mlResponse });
+  //   console.log({ dnsSettled, safeBrowsingSettled, mlResponse });
 
   let ml: MlResponse = { error: true, success: "error" };
   if (mlResponse.status === "fulfilled") {
     ml = mlResponse.value;
   }
-
 
   if (dnsSettled.status === "rejected") {
     return errorResponse("DNS lookup failed", 500);
@@ -160,10 +159,10 @@ VirusTotal:
 Google Safe Browsing:
 - Is safe: ${safeBrowsing.isSafe}
 - Threat matches: ${
-            safeBrowsing.matches.length === 0
-              ? "none"
-              : JSON.stringify(safeBrowsing.matches)
-          }
+          safeBrowsing.matches.length === 0
+            ? "none"
+            : JSON.stringify(safeBrowsing.matches)
+        }
 
 ML Prediction:
 - Error: ${ml.error}
@@ -254,7 +253,7 @@ Respond ONLY with valid JSON in this exact format:
     },
   });
 
-    // return NextResponse.json({ error: "Not implemented", data:{ dnsSettled, safeBrowsingSettled, mlResponse } }, { status: 200 });
+  // return NextResponse.json({ error: "Not implemented", data:{ dnsSettled, safeBrowsingSettled, mlResponse } }, { status: 200 });
 }
 
 export async function GET(req: NextRequest): Promise<Response> {

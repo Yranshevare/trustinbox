@@ -1,11 +1,7 @@
 // Gmail email extractor
 (() => {
-  
-  // Function to extract complete email details
   function extractEmailDetails() {
     try {
-      // Try to find the main email content container
-      // Gmail typically uses these selectors for email content
       const emailSelectors = [
         '[data-message-id] [role="presentation"]',
         '.a3s.aiL',
@@ -23,39 +19,85 @@
         }
       }
 
-      // If no specific email element found, fall back to body
       if (!emailElement) {
         emailElement = document.body;
       }
 
-      // Clone the element to avoid modifying the original
       const clonedElement = emailElement.cloneNode(true) as Element;
 
-      // Remove all <style> tags
       const styles = clonedElement.querySelectorAll('style');
-      styles.forEach(style => style.remove());
+      styles.forEach((style) => { style.remove(); });
 
-      // Remove all <script> tags
       const scripts = clonedElement.querySelectorAll('script');
-      scripts.forEach(script => script.remove());
+      scripts.forEach((script) => { script.remove(); });
 
-      // Remove all <link> tags with rel="stylesheet"
-      const links = clonedElement.querySelectorAll('link[rel="stylesheet"]');
-      links.forEach(link => link.remove());
+      const linkTags = clonedElement.querySelectorAll('link[rel="stylesheet"]');
+      linkTags.forEach((link) => { link.remove(); });
 
-      // Get the clean HTML of the email element
-      const cleanHTML = clonedElement.outerHTML;
+      const body = clonedElement.textContent?.trim() || "";
 
-      // Print the clean HTML
-      console.log('📧 Email HTML Element:', cleanHTML);
-      return cleanHTML;
+      const links: string[] = [];
+      const anchorLinks = clonedElement.querySelectorAll('a[href]');
+      anchorLinks.forEach((anchor) => {
+        const href = anchor.getAttribute('href');
+        if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+          links.push(href);
+        }
+      });
+
+      let senderEmail = "";
+      const senderElement = document.querySelector('[data-email]');
+      if (senderElement) {
+        senderEmail = senderElement.getAttribute('data-email') || "";
+      }
+      if (!senderEmail) {
+        const fromElements = document.querySelectorAll('[name="from"]');
+        for (const el of fromElements) {
+          const value = el.getAttribute('value');
+          if (value && value.includes('@')) {
+            senderEmail = value;
+            break;
+          }
+        }
+      }
+      if (!senderEmail) {
+        const fromDivs = document.querySelectorAll('div[dir="ltr"]');
+        for (const div of fromDivs) {
+          const text = div.textContent || "";
+          const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (emailMatch) {
+            senderEmail = emailMatch[0];
+            break;
+          }
+        }
+      }
+
+      let subject = "";
+      const subjectElement = document.querySelector('[data-subject]');
+      if (subjectElement) {
+        subject = subjectElement.getAttribute('data-subject') || "";
+      }
+      if (!subject) {
+        const h1 = document.querySelector('h1');
+        if (h1) subject = h1.textContent || "";
+      }
+      if (!subject) {
+        const title = document.querySelector('title');
+        if (title) subject = title.textContent || "";
+      }
+
+      return {
+        senderEmail,
+        subject,
+        body,
+        links,
+      };
     } catch (error) {
-      console.error('Error extracting HTML:', error);
+      console.error('Error extracting email:', error);
       return null;
     }
   }
 
-  // Listen for messages from the sidebar - ONLY extract when button is clicked
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.action === 'extractEmailDetails') {
       const result = extractEmailDetails();

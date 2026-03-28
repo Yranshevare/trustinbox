@@ -162,7 +162,8 @@ export default function SidePanel() {
   const [analysisSteps, setAnalysisSteps] = useState<AnalysisStep[]>([
     { id: "dns", title: "DNS Analysis", status: "pending" },
     { id: "safebrowsing", title: "Safe Browsing", status: "pending" },
-    { id: "ai", title: "AI Verdict", status: "pending" },
+    { id: "ml", title: "ML Prediction", status: "pending" },
+    { id: "ai", title: "Final Verdict", status: "pending" },
   ]);
   const [finalVerdict, setFinalVerdict] = useState<AiVerdict | null>(null);
   const analysisRef = useRef<HTMLDivElement>(null);
@@ -254,7 +255,7 @@ export default function SidePanel() {
   };
 
   const handleAnalyseEmail = async () => {
-    if (!emailData || !emailData.links.length || !userId) return;
+    if (!emailData || !emailData.links?.length || !userId) return;
     const domain = extractDomain(emailData.links[0]);
     if (!domain) return;
 
@@ -264,7 +265,8 @@ export default function SidePanel() {
     setAnalysisSteps([
       { id: "dns", title: "DNS Analysis", status: "running" },
       { id: "safebrowsing", title: "Safe Browsing", status: "pending" },
-      { id: "ai", title: "AI Verdict", status: "pending" },
+      { id: "ml", title: "ML Prediction", status: "pending" },
+      { id: "ai", title: "Final Verdict", status: "pending" },
     ]);
     setTimeout(
       () => analysisRef.current?.scrollIntoView({ behavior: "smooth" }),
@@ -314,6 +316,17 @@ export default function SidePanel() {
               setAnalysisSteps((p) =>
                 p.map((s) =>
                   s.id === "safebrowsing"
+                    ? { ...s, status: "completed", data }
+                    : s.id === "ml"
+                      ? { ...s, status: "running" }
+                      : s,
+                ),
+              );
+            } else if (eType === "ml") {
+              console.log(data);
+              setAnalysisSteps((p) =>
+                p.map((s) =>
+                  s.id === "ml"
                     ? { ...s, status: "completed", data }
                     : s.id === "ai"
                       ? { ...s, status: "running" }
@@ -643,7 +656,7 @@ export default function SidePanel() {
             )}
 
             {/* Links */}
-            {emailData && emailData.links.length > 0 && (
+            {emailData && emailData.links?.length > 0 && (
               <div style={{ ...card, height: "50%" }}>
                 <div style={cardHead}>
                   <span style={label10}>Links found</span>
@@ -656,7 +669,7 @@ export default function SidePanel() {
                       borderRadius: 5,
                     }}
                   >
-                    {emailData.links.length}
+                    {emailData.links?.length}
                   </span>
                 </div>
                 <div style={{ overflowY: "auto" }}>
@@ -702,7 +715,7 @@ export default function SidePanel() {
               </div>
             )}
 
-            {emailData && emailData.links.length === 0 && (
+            {emailData && emailData.links?.length === 0 && (
               <div
                 style={{
                   border: `1px dashed ${C.border}`,
@@ -889,6 +902,62 @@ export default function SidePanel() {
                       </div>
                     )}
 
+                    {step.data && step.id === "ml" && (
+                      <div
+                        style={{
+                          marginTop: 6,
+                          marginLeft: 24,
+                          display: "flex",
+                          gap: 8,
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 10,
+                            fontWeight: 500,
+                            padding: "2px 7px",
+                            borderRadius: 5,
+                            background:
+                              (step.data as any).prediction === "good"
+                                ? "rgba(16,185,129,0.12)"
+                                : "rgba(239,68,68,0.12)",
+                            color:
+                              (step.data as any).prediction === "good"
+                                ? C.greenText
+                                : C.redText,
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              display: "inline-block",
+                              background:
+                                (step.data as any).prediction === "good"
+                                  ? C.green
+                                  : C.red,
+                            }}
+                          />
+                          {(step.data as any).prediction === "good"
+                            ? "Looks legitimate"
+                            : "Likely malicious"}
+                        </span>
+                        <span
+                          style={{
+                            fontSize: 10,
+                            color: C.textMuted,
+                            alignSelf: "center",
+                          }}
+                        >
+                          {Math.round((step.data as any).raw?.good * 100)}% good
+                        </span>
+                      </div>
+                    )}
+
                     {step.details && (
                       <p
                         style={{
@@ -1012,17 +1081,18 @@ export default function SidePanel() {
           }}
         >
           <button
+            type="button"
             style={{
               ...primaryBtn,
               ...(!emailData ||
-              !emailData.links.length ||
+              !emailData.links?.length ||
               analyzingDomain !== null
                 ? disabledBtn
                 : {}),
             }}
             onClick={handleAnalyseEmail}
             disabled={
-              !emailData || !emailData.links.length || analyzingDomain !== null
+              !emailData || !emailData.links?.length || analyzingDomain !== null
             }
           >
             {analyzingDomain ? (
