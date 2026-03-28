@@ -1,24 +1,19 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pkg from "pg";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import * as schema from "./schema/index";
 
-const { Pool } = pkg;
-
 declare global {
-  var _pgPool: InstanceType<typeof Pool> | undefined;
+  var _client: ReturnType<typeof createClient> | undefined;
   var _drizzleDb: ReturnType<typeof drizzle> | undefined;
 }
 
-const pool =
-  global._pgPool ??
-  new Pool({
-    connectionString: process.env.DATABASE_URL,
-    idleTimeoutMillis: 30000,
-  });
+const client = global._client ?? createClient({
+  url: "file:local.db",
+});
 
-if (!global._pgPool) global._pgPool = pool;
+if (!global._client) global._client = client;
 
-const db = global._drizzleDb ?? drizzle(pool, { schema });
+const db = global._drizzleDb ?? drizzle(client, { schema });
 
 if (!global._drizzleDb) global._drizzleDb = db;
 

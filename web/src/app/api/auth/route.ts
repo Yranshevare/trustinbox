@@ -5,11 +5,13 @@ import { eq, and, gt } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { db } from "@/lib/db/client";
 import { user, otp as otpTable } from "@/lib/db/schema";
-import { sendOTPEmail, generateOTP, isValidEmail } from "@/lib/email/service";
+import { sendOTPEmail, generateOTP } from "@/lib/email/service";
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || "fallback_secret_change_me",
 );
+
+export type actionType = "send-otp" | "verify-otp";
 
 function hashOTP(otp: string) {
   return crypto.createHash("sha256").update(otp).digest("hex");
@@ -17,10 +19,9 @@ function hashOTP(otp: string) {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
+    const body = await request.json();
     const { action, email, otp } = body;
-
-    if (!email || !isValidEmail(email)) {
+    if (!email) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 

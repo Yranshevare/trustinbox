@@ -1,6 +1,6 @@
-import { resend } from './config';
-import { EMAIL_CONFIG } from './config';
-import { generateOTPEmailTemplate } from './templates/otp';
+import { resend } from "./config";
+import { EMAIL_CONFIG } from "./config";
+import { generateOTPEmailTemplate } from "./templates/otp";
 
 export interface SendOTPEmailParams {
   email: string;
@@ -11,14 +11,14 @@ export interface SendOTPEmailParams {
 export async function sendOTPEmail({
   email,
   otp,
-  expiresIn = 10
+  expiresIn = 10,
 }: SendOTPEmailParams): Promise<{ success: boolean; error?: string }> {
   try {
     // Generate HTML template
     const htmlContent = generateOTPEmailTemplate({
       otp,
       email,
-      expiresIn
+      expiresIn,
     });
 
     const response = await resend.emails.send({
@@ -31,19 +31,18 @@ export async function sendOTPEmail({
     if (response.error) {
       return {
         success: false,
-        error: response.error.message || 'Failed to send OTP email'
+        error: response.error.message || "Failed to send OTP email",
       };
     }
 
     return {
-      success: true
+      success: true,
     };
-
   } catch (error) {
-    console.error('Error sending OTP email:', error);
+    console.error("Error sending OTP email:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }
@@ -53,8 +52,10 @@ export async function sendVerificationEmail(params: SendOTPEmailParams) {
 }
 
 export async function sendWelcomeEmail({
-  email
-}: { email: string }): Promise<{ success: boolean; error?: string }> {
+  email,
+}: {
+  email: string;
+}): Promise<{ success: boolean; error?: string }> {
   try {
     const htmlContent = `
       <!DOCTYPE html>
@@ -110,38 +111,32 @@ export async function sendWelcomeEmail({
     const response = await resend.emails.send({
       from: EMAIL_CONFIG.from!,
       to: [email],
-      subject: 'Welcome to TrustinBox - Your Account is Verified!',
+      subject: "Welcome to TrustinBox - Your Account is Verified!",
       html: htmlContent,
     });
 
     if (response.error) {
       return {
         success: false,
-        error: response.error.message || 'Failed to send welcome email'
+        error: response.error.message || "Failed to send welcome email",
       };
     }
 
     return {
-      success: true
+      success: true,
     };
-
   } catch (error) {
-    console.error('Error sending welcome email:', error);
+    console.error("Error sending welcome email:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }
 
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
 export function generateOTP(length: number = 6): string {
-  const digits = '0123456789';
-  let otp = '';
+  const digits = "0123456789";
+  let otp = "";
 
   for (let i = 0; i < length; i++) {
     otp += digits[Math.floor(Math.random() * digits.length)];

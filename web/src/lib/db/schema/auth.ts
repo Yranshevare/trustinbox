@@ -1,32 +1,30 @@
 import {
-  boolean,
-  jsonb,
-  pgTable,
+  sqliteTable,
   text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+  integer,
+} from "drizzle-orm/sqlite-core";
+import { randomUUID } from "crypto";
 
-export const user = pgTable("user", {
-  id: uuid("id").primaryKey().defaultRandom(),
+export const user = sqliteTable("user", {
+  id: text("id").primaryKey().$defaultFn(() => randomUUID()),
   email: text("email").notNull().unique(),
-  isVerified: boolean("isVerified").notNull().default(false),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  isVerified: integer("isVerified").notNull().default(0),
+  createdAt: integer("createdAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 
-export const session = pgTable("session", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("userId").notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
+export const session = sqliteTable("session", {
+  id: text("id").primaryKey().$defaultFn(() => randomUUID()),
+  userId: text("userId").notNull(),
+  expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
   token: text("token").notNull(),
 });
 
-export const otp = pgTable("otp", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("userId").notNull(),
+export const otp = sqliteTable("otp", {
+  id: text("id").primaryKey().$defaultFn(() => randomUUID()),
+  userId: text("userId").notNull(),
   code: text("code").notNull(),
-  expiresAt: timestamp("expiresAt").notNull(),
+  expiresAt: integer("expiresAt", { mode: "timestamp" }).notNull(),
 });
 
 export interface predictions {
@@ -39,14 +37,14 @@ export interface predictions {
   status: string;
 }
 
-export const predictions = pgTable("predictions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("userId").notNull(),
-  metadata: jsonb("metadata").notNull().$type<predictions>(),
+export const predictions = sqliteTable("predictions", {
+  id: text("id").primaryKey().$defaultFn(() => randomUUID()),
+  userId: text("userId").notNull(),
+  metadata: text("metadata").notNull(),
   sender: text("sender"),
   emailSubject: text("emailSubject"),
   body: text("body"),
-  attachments: jsonb("attachments"),
+  attachments: text("attachments"),
 });
 
 export type User = typeof user.$inferSelect;

@@ -1,14 +1,12 @@
 import type { Config } from "drizzle-kit";
 import "dotenv/config";
 
-console.log(process.env.DATABASE_URL);
-
 export default {
   schema: "./src/lib/db/schema/index.ts",
   out: "./drizzle",
-  dialect: "postgresql",
+  dialect: "turso",
   dbCredentials: {
-    url: process.env.DATABASE_URL!,
+    url: "local.db",
   },
   verbose: true,
 } satisfies Config;
