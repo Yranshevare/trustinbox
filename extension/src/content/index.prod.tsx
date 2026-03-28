@@ -1,61 +1,55 @@
 // Gmail email extractor
 (() => {
-  
-  // Function to extract complete email details
-  function extractEmailDetails() {
+  function extractEmailDetails(): {
+    senderEmail: string;
+    subject: string;
+    body: string;
+    links: string[];
+  } | null {
     try {
-      // Try to find the main email content container
-      // Gmail typically uses these selectors for email content
-      const emailSelectors = [
-        '[data-message-id] [role="presentation"]',
-        '.a3s.aiL',
-        '[role="main"] [role="article"]',
-        '[data-message-id]',
-        '.gs',
-        '[itemprop="description"]'
-      ];
+      const getText = (el: Element | Document, selector: string) => {
+        const el2 = el.querySelector(selector);
+        return el2?.textContent?.trim() || '';
+      };
 
-      let emailElement = null;
-      for (const selector of emailSelectors) {
-        emailElement = document.querySelector(selector);
-        if (emailElement && emailElement.textContent?.trim()) {
-          break;
-        }
-      }
+      const getAttr = (el: Element | Document, selector: string, attr: string) => {
+        const el2 = el.querySelector(selector);
+        return el2?.getAttribute(attr) || '';
+      };
 
-      // If no specific email element found, fall back to body
-      if (!emailElement) {
-        emailElement = document.body;
-      }
+      const emailContainer = document.querySelector('[data-message-id]') || document.body;
 
-      // Clone the element to avoid modifying the original
-      const clonedElement = emailElement.cloneNode(true) as Element;
+      const senderEmail = (
+        getAttr(emailContainer, '[data-email]', 'data-email') ||
+        getAttr(emailContainer, '.gD', 'email') ||
+        getText(emailContainer, '.gD') ||
+        getText(emailContainer, '[rel="im"]')
+      ).replace(/^.*<|>.*$/g, '').trim();
 
-      // Remove all <style> tags
-      const styles = clonedElement.querySelectorAll('style');
-      styles.forEach(style => style.remove());
+      const subject = (
+        getText(emailContainer, 'h2[data-thread-id]') ||
+        getText(emailContainer, '.hP') ||
+        getText(emailContainer, '[role="heading"]')
+      );
 
-      // Remove all <script> tags
-      const scripts = clonedElement.querySelectorAll('script');
-      scripts.forEach(script => script.remove());
+      const bodyElement =
+        document.querySelector('[data-message-id] [role="presentation"]') ||
+        document.querySelector('.a3s.aiL') ||
+        emailContainer;
 
-      // Remove all <link> tags with rel="stylesheet"
-      const links = clonedElement.querySelectorAll('link[rel="stylesheet"]');
-      links.forEach(link => link.remove());
+      const body = bodyElement?.textContent?.trim() || '';
 
-      // Get the clean HTML of the email element
-      const cleanHTML = clonedElement.outerHTML;
+      const links = Array.from(emailContainer.querySelectorAll('a[href]'))
+        .map((a) => a.getAttribute('href'))
+        .filter((href): href is string => !!href && href.startsWith('http'));
 
-      // Print the clean HTML
-      console.log('📧 Email HTML Element:', cleanHTML);
-      return cleanHTML;
+      return { senderEmail, subject, body, links };
     } catch (error) {
-      console.error('Error extracting HTML:', error);
+      console.error('Error extracting email:', error);
       return null;
     }
   }
 
-  // Listen for messages from the sidebar - ONLY extract when button is clicked
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.action === 'extractEmailDetails') {
       const result = extractEmailDetails();
