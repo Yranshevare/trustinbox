@@ -1,0 +1,284 @@
+.trustinbox-toolbar-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.trustinbox-toolbar-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+#trustinbox-sidebar {
+  position: fixed;
+  top: 0;
+  right: -400px;
+  width: 380px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+  z-index: 999999;
+  display: flex;
+  flex-direction: column;
+  transition: right 0.3s ease;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+#trustinbox-sidebar.open {
+  right: 0;
+}
+
+.trustinbox-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.trustinbox-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.trustinbox-icon {
+  font-size: 20px;
+}
+
+.trustinbox-btn-icon {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.trustinbox-btn-icon:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.trustinbox-sidebar-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.trustinbox-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #666;
+}
+
+.trustinbox-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: trustinbox-spin 1s linear infinite;
+}
+
+@keyframes trustinbox-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.trustinbox-result {
+  text-align: center;
+}
+
+.trustinbox-risk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.risk-high .trustinbox-risk-badge {
+  background: #fee;
+  color: #c00;
+}
+
+.risk-high .risk-indicator {
+  background: #c00;
+}
+
+.risk-medium .trustinbox-risk-badge {
+  background: #ffa;
+  color: #a60;
+}
+
+.risk-medium .risk-indicator {
+  background: #a60;
+}
+
+.risk-low .trustinbox-risk-badge {
+  background: #efe;
+  color: #060;
+}
+
+.risk-low .risk-indicator {
+  background: #060;
+}
+
+.risk-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.trustinbox-score {
+  margin: 24px 0;
+}
+
+.score-circle {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--score-color, #667eea) calc(var(--score) * 3.6deg),
+    #f3f3f3 0deg
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+}
+
+.score-circle span {
+  width: 100px;
+  height: 100px;
+  background: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--score-color, #667eea);
+}
+
+.risk-high .score-circle {
+  --score-color: #c00;
+}
+
+.risk-medium .score-circle {
+  --score-color: #fa0;
+}
+
+.risk-low .score-circle {
+  --score-color: #0a0;
+}
+
+.trustinbox-threats,
+.trustinbox-recommendations {
+  text-align: left;
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.trustinbox-threats h4,
+.trustinbox-recommendations h4 {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.trustinbox-threats ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.trustinbox-threats li {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #c00;
+}
+
+.trustinbox-recommendations p {
+  margin: 0;
+  font-size: 13px;
+  color: #333;
+}
+
+.trustinbox-error {
+  text-align: center;
+  padding: 20px;
+}
+
+.trustinbox-error p {
+  color: #c00;
+  margin-bottom: 16px;
+}
+
+.trustinbox-sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid #eee;
+}
+
+.trustinbox-btn-primary {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.trustinbox-btn-primary:hover {
+  transform: scale(1.02);
+}
+
+.trustinbox-btn-secondary {
+  padding: 8px 16px;
+  background: #f3f3f3;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+  #trustinbox-sidebar {
+    background: #1a1a1a;
+    color: #fff;
+  }
+
+  .trustinbox-threats,
+  .trustinbox-recommendations {
+    background: #2a2a2a;
+  }
+
+  .trustinbox-recommendations p {
+    color: #ccc;
+  }
+
+  .score-circle span {
+    background: #1a1a1a;
+  }
+}
