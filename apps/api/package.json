@@ -1,0 +1,48 @@
+{
+  "name": "api",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "db:generate": "drizzle-kit generate"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "prettier": "@repo/prettier-config",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.962.0",
+    "@aws-sdk/s3-request-presigner": "^3.962.0",
+    "@better-auth/stripe": "^1.4.10",
+    "@hono/node-server": "^1.19.7",
+    "@hono/zod-validator": "^0.7.6",
+    "@upstash/redis": "^1.36.0",
+    "better-auth": "^1.4.10",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "^0.31.8",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.11.3",
+    "pg": "^8.16.3",
+    "resend": "^6.6.0",
+    "stripe": "^20.1.0",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.4"
+  },
+  "devDependencies": {
+    "@repo/prettier-config": "workspace:*",
+    "@types/node": "^25.0.3",
+    "@types/pg": "^8.16.0",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.3"
+  },
+  "turbo": {
+    "build": {
+      "outputs": []
+    }
+  }
+}
