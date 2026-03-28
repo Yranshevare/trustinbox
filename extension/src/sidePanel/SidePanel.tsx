@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { fetchSession, sendOtp, verifyOtp } from '../utils/auth';
 
+type EmailData = {
+  senderEmail: string;
+  subject: string;
+  body: string;
+  links: string[];
+} | null;
+
 export default function SidePanel() {
   const [status, setStatus] = useState<string>('Ready');
   const [isLoading, setIsLoading] = useState(false);
@@ -8,6 +15,7 @@ export default function SidePanel() {
   const [otp, setOtp] = useState('');
   const [authStatus, setAuthStatus] = useState<'unknown' | 'logged-out' | 'otp-sent' | 'logged-in'>('unknown');
   const [message, setMessage] = useState('');
+  const [emailData, setEmailData] = useState<EmailData>(null);
 
   useEffect(() => {
     (async () => {
@@ -88,8 +96,9 @@ export default function SidePanel() {
         action: 'extractEmailDetails'
       });
 
-      if (response.success) {
-        setStatus('✅ Email details logged to console!');
+      if (response.success && response.data) {
+        setEmailData(response.data);
+        setStatus('✅ Email extracted successfully!');
       } else {
         setStatus('❌ Failed to extract email');
       }
@@ -127,6 +136,7 @@ export default function SidePanel() {
           </div>
 
           <button
+            type='button'
             className='btn btn-primary w-full mb-3'
             onClick={handleSendOtp}
             disabled={isLoading || authStatus === 'otp-sent'}
@@ -151,6 +161,7 @@ export default function SidePanel() {
                 />
               </div>
               <button
+                type='button'
                 className='btn btn-secondary w-full'
                 onClick={handleVerifyOtp}
                 disabled={isLoading}
@@ -184,6 +195,35 @@ export default function SidePanel() {
                 <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>Status:</p>
                 <p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>{status}</p>
               </div>
+
+              {emailData && (
+                <div className='mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-md space-y-2'>
+                  <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                    <strong>From:</strong> {emailData.senderEmail}
+                  </p>
+                  <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                    <strong>Subject:</strong> {emailData.subject}
+                  </p>
+                  <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                    <strong>Body:</strong>
+                  </p>
+                  <pre className='text-xs text-gray-600 dark:text-gray-400 whitespace-pre-wrap break-words max-h-32 overflow-auto'>
+                    {emailData.body.slice(0, 300)}
+                    {emailData.body.length > 300 && '...'}
+                  </pre>
+                  {emailData.links.length > 0 && (
+                    <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                      <strong>Links ({emailData.links.length}):</strong>
+                    </p>
+                  )}
+                  <ul className='text-xs text-gray-600 dark:text-gray-400 space-y-1 max-h-24 overflow-auto'>
+                    {emailData.links.slice(0, 5).map((link, i) => (
+                      <li key={i} className='break-all'>{link}</li>
+                    ))}
+                    {emailData.links.length > 5 && <li>...and {emailData.links.length - 5} more</li>}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div className='bg-white dark:bg-gray-700 rounded-lg p-4 shadow-md'>
