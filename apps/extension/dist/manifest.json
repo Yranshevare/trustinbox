@@ -10,7 +10,7 @@
     "https://localhost:3000/*"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "pages/popup/index.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -37,7 +37,7 @@
     }
   ],
   "options_ui": {
-    "page": "options.html",
+    "page": "pages/options/index.html",
     "open_in_tab": true
   },
   "oauth2": {
