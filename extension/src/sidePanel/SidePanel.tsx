@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { fetchSession, sendOtp, verifyOtp } from "../utils/auth";
 
 type EmailData = {
@@ -11,9 +11,10 @@ type EmailData = {
 type AnalysisStep = {
   id: string;
   title: string;
+  desc: string;
   status: "pending" | "running" | "completed" | "error";
   details?: string;
-  data?: Record<string, unknown>;
+  data?: Record<string, any>;
 };
 
 type AiVerdict = {
@@ -31,145 +32,53 @@ type UrlAnalysisResult = {
   status: "pending" | "analyzing" | "completed" | "error";
 };
 
-const C = {
-  bg: "#f8f9fb",
+const THEME = {
+  primary: "#6366f1",
+  primaryHover: "#4f46e5",
+  bg: "#f8fafc",
   surface: "#ffffff",
   border: "#e2e8f0",
-  borderFaint: "#edf2f7",
-  violet: "#7c3aed",
-  textPrimary: "#0f172a",
-  textSecondary: "#475569",
-  textMuted: "#94a3b8",
-  textDim: "#cbd5e1",
-  green: "#059669",
-  greenFaint: "rgba(5,150,105,0.08)",
-  greenBorder: "rgba(5,150,105,0.2)",
-  greenText: "#047857",
-  amber: "#d97706",
-  amberFaint: "rgba(217,119,6,0.08)",
-  amberBorder: "rgba(217,119,6,0.2)",
-  amberText: "#b45309",
-  red: "#dc2626",
-  redFaint: "rgba(220,38,38,0.06)",
-  redBorder: "rgba(220,38,38,0.2)",
-  redText: "#b91c1c",
-  runningColor: "#7c3aed",
+  textMain: "#0f172a",
+  textSec: "#475569",
+  textMute: "#94a3b8",
+  safe: "#10b981",
+  safeBg: "rgba(16,185,129,0.08)",
+  warn: "#f59e0b",
+  warnBg: "rgba(245,158,11,0.08)",
+  danger: "#ef4444",
+  dangerBg: "rgba(239,68,68,0.08)",
 };
 
-const verdictCfg = {
-  SAFE: {
-    bg: "rgba(16,185,129,0.1)",
-    border: "rgba(16,185,129,0.25)",
-    badge: "#10b981",
-    text: "#34d399",
-    dot: "#10b981",
-  },
-  SUSPICIOUS: {
-    bg: "rgba(245,158,11,0.1)",
-    border: "rgba(245,158,11,0.25)",
-    badge: "#f59e0b",
-    text: "#fbbf24",
-    dot: "#f59e0b",
-  },
-  PHISHING: {
-    bg: "rgba(239,68,68,0.08)",
-    border: "rgba(239,68,68,0.25)",
-    badge: "#ef4444",
-    text: "#f87171",
-    dot: "#ef4444",
-  },
+const verdictStyles = {
+  SAFE: { color: THEME.safe, bg: THEME.safeBg, icon: "🛡️" },
+  SUSPICIOUS: { color: THEME.warn, bg: THEME.warnBg, icon: "⚠️" },
+  PHISHING: { color: THEME.danger, bg: THEME.dangerBg, icon: "🚨" },
 };
 
-function IconShield() {
+function Spinner({ size = 18, color = THEME.primary }) {
   return (
-    <svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-      />
-    </svg>
+    <div style={{
+      width: size,
+      height: size,
+      border: `2.5px solid ${color}22`,
+      borderTopColor: color,
+      borderRadius: "50%",
+      animation: "ti-spin 0.8s linear infinite",
+    }} />
   );
-}
-
-function Spinner({
-  color = "#fff",
-  size = 14,
-}: {
-  color?: string;
-  size?: number;
-}) {
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        border: `2px solid ${color}40`,
-        borderTopColor: color,
-        animation: "ti-spin 0.75s linear infinite",
-        flexShrink: 0,
-      }}
-    />
-  );
-}
-
-function StepIcon({ status }: { status: AnalysisStep["status"] }) {
-  const base: React.CSSProperties = {
-    width: 16,
-    height: 16,
-    borderRadius: "50%",
-    flexShrink: 0,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  };
-  if (status === "completed")
-    return (
-      <div style={{ ...base, background: C.green }}>
-        <svg width="9" height="9" fill="none" stroke="#fff" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={3.5}
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-      </div>
-    );
-  if (status === "running") return <Spinner color={C.violet} size={16} />;
-  if (status === "error")
-    return (
-      <div style={{ ...base, background: C.red }}>
-        <svg width="9" height="9" fill="none" stroke="#fff" viewBox="0 0 24 24">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={3}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </div>
-    );
-  return <div style={{ ...base, border: "1px solid #334155" }} />;
 }
 
 export default function SidePanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
-  const [authStatus, setAuthStatus] = useState<
-    "unknown" | "logged-out" | "otp-sent" | "logged-in"
-  >("unknown");
+  const [authStatus, setAuthStatus] = useState<"unknown" | "logged-out" | "otp-sent" | "logged-in">("unknown");
   const [message, setMessage] = useState("");
   const [emailData, setEmailData] = useState<EmailData>(null);
   const [userId, setUserId] = useState("");
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [analyzingDomain, setAnalyzingDomain] = useState<string | null>(null);
   const [urlResults, setUrlResults] = useState<UrlAnalysisResult[]>([]);
-  const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
-  const analysisRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     (async () => {
@@ -189,15 +98,8 @@ export default function SidePanel() {
     if (authStatus === "logged-in" && !emailData && !isLoading) extractEmail();
   }, [authStatus]);
 
-  // Auto-start analysis when email data is loaded
   useEffect(() => {
-    if (
-      authStatus === "logged-in" &&
-      emailData &&
-      emailData.links?.length > 0 &&
-      !showAnalysis &&
-      !analyzingDomain
-    ) {
+    if (authStatus === "logged-in" && emailData && emailData.links?.length > 0 && !showAnalysis && !analyzingDomain) {
       handleAnalyseEmail();
     }
   }, [authStatus, emailData]);
@@ -213,91 +115,52 @@ export default function SidePanel() {
   const extractEmail = async () => {
     setIsLoading(true);
     try {
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      if (!tab.id) {
-        setIsLoading(false);
-        return;
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab.id) {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: "extractEmailDetails" });
+        if (response.success && response.data) setEmailData(response.data);
       }
-      const response = await chrome.tabs.sendMessage(tab.id, {
-        action: "extractEmailDetails",
-      });
-      if (response.success && response.data) setEmailData(response.data);
-    } catch {
-      /* no email open */
-    }
+    } catch { /* ignore */ }
     setIsLoading(false);
   };
 
   const handleSendOtp = async () => {
-    if (!email) {
-      setMessage("Please provide email address");
-      return;
-    }
+    if (!email) return setMessage("Email is required");
     setIsLoading(true);
-    setMessage("Sending…");
     try {
       await sendOtp(email);
       setAuthStatus("otp-sent");
-      setMessage("Code sent — check your email.");
-    } catch (e) {
-      setMessage((e as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
+      setMessage("Check your email");
+    } catch (e) { setMessage((e as Error).message); }
+    setIsLoading(false);
   };
 
   const handleVerifyOtp = async () => {
-    if (!email || !otp) {
-      setMessage("Email and OTP are required.");
-      return;
-    }
+    if (!otp) return;
     setIsLoading(true);
-    setMessage("Verifying…");
     try {
       const result = await verifyOtp(email, otp);
       if (result?.success) {
         setAuthStatus("logged-in");
         setUserId(email);
-        setMessage("Verified!");
-      } else setMessage("Verification failed.");
-    } catch (e) {
-      setMessage((e as Error).message);
-    } finally {
-      setIsLoading(false);
-    }
+      } else setMessage("Invalid code");
+    } catch (e) { setMessage((e as Error).message); }
+    setIsLoading(false);
   };
 
   const analyzeSingleUrl = async (url: string, index: number) => {
     const domain = extractDomain(url);
-    if (!domain) {
-      setUrlResults((prev) =>
-        prev.map((r, i) =>
-          i === index ? { ...r, status: "error", steps: [] } : r,
-        ),
-      );
-      return;
-    }
+    if (!domain) return;
 
-    setUrlResults((prev) =>
-      prev.map((r, i) =>
-        i === index
-          ? {
-              ...r,
-              domain,
-              status: "analyzing",
-              steps: [
-                { id: "dns", title: "DNS Analysis", status: "running" },
-                { id: "safebrowsing", title: "Safe Browsing", status: "pending" },
-                { id: "ml", title: "ML Prediction", status: "pending" },
-                { id: "ai", title: "Final Verdict", status: "pending" },
-              ],
-            }
-          : r,
-      ),
-    );
+    setUrlResults(prev => prev.map((r, i) => i === index ? {
+      ...r, domain, status: "analyzing",
+      steps: [
+        { id: "dns", title: "Infrastructure", desc: "Verifying website age & records", status: "running" },
+        { id: "safebrowsing", title: "Reputation", desc: "Checking against threat databases", status: "pending" },
+        { id: "ml", title: "Pattern Analysis", desc: "AI scanning for phishing behaviors", status: "pending" },
+        { id: "ai", title: "Risk Verdict", desc: "Synthesizing final security level", status: "pending" },
+      ]
+    } : r));
     setAnalyzingDomain(domain);
 
     try {
@@ -305,16 +168,13 @@ export default function SidePanel() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          domain,
-          userId,
+          domain, userId,
           senderEmail: emailData?.senderEmail,
           emailSubject: emailData?.subject,
           emailBody: emailData?.body,
           links: emailData?.links,
         }),
       });
-      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       if (!reader) return;
@@ -333,763 +193,227 @@ export default function SidePanel() {
             if (!eType || !raw || raw === "[DONE]") continue;
             const data = JSON.parse(raw);
 
-            if (eType === "dns") {
-              setUrlResults((prev) =>
-                prev.map((r, i) =>
-                  i === index
-                    ? {
-                        ...r,
-                        steps: r.steps.map((s) =>
-                          s.id === "dns"
-                            ? {
-                                ...s,
-                                status: "completed",
-                                data: { ...data.result, domain: data.domain },
-                              }
-                            : s.id === "safebrowsing"
-                              ? { ...s, status: "running" }
-                              : s,
-                        ),
-                      }
-                    : r,
-                ),
-              );
-            } else if (eType === "safebrowsing") {
-              setUrlResults((prev) =>
-                prev.map((r, i) =>
-                  i === index
-                    ? {
-                        ...r,
-                        steps: r.steps.map((s) =>
-                          s.id === "safebrowsing"
-                            ? { ...s, status: "completed", data }
-                            : s.id === "ml"
-                              ? { ...s, status: "running" }
-                              : s,
-                        ),
-                      }
-                    : r,
-                ),
-              );
-            } else if (eType === "ml") {
-              setUrlResults((prev) =>
-                prev.map((r, i) =>
-                  i === index
-                    ? {
-                        ...r,
-                        steps: r.steps.map((s) =>
-                          s.id === "ml"
-                            ? { ...s, status: "completed", data }
-                            : s.id === "ai"
-                              ? { ...s, status: "running" }
-                              : s,
-                        ),
-                      }
-                    : r,
-                ),
-              );
-            } else if (eType === "ai_final") {
-              setUrlResults((prev) =>
-                prev.map((r, i) =>
-                  i === index
-                    ? {
-                        ...r,
-                        verdict: data,
-                        steps: r.steps.map((s) =>
-                          s.id === "ai" ? { ...s, status: "completed", data } : s,
-                        ),
-                        status: "completed",
-                      }
-                    : r,
-                ),
-              );
-              setAnalyzingDomain(null);
-            } else if (eType === "error") {
-              setUrlResults((prev) =>
-                prev.map((r, i) =>
-                  i === index
-                    ? {
-                        ...r,
-                        status: "error",
-                        steps: r.steps.map((s) =>
-                          s.status === "running"
-                            ? {
-                                ...s,
-                                status: "error",
-                                details: data?.error || "Unknown error",
-                              }
-                            : s,
-                        ),
-                      }
-                    : r,
-                ),
-              );
-              setAnalyzingDomain(null);
-            } else if (eType === "done") {
-              setAnalyzingDomain(null);
-            }
-          } catch {
-            /* continue */
-          }
+            setUrlResults(prev => prev.map((r, i) => {
+              if (i !== index) return r;
+              let nextSteps = [...r.steps];
+              if (eType === "dns") {
+                nextSteps = nextSteps.map(s => s.id === "dns" ? { ...s, status: "completed", data: { ...data.result, domain: data.domain } } : s.id === "safebrowsing" ? { ...s, status: "running" } : s);
+              } else if (eType === "safebrowsing") {
+                nextSteps = nextSteps.map(s => s.id === "safebrowsing" ? { ...s, status: "completed", data } : s.id === "ml" ? { ...s, status: "running" } : s);
+              } else if (eType === "ml") {
+                nextSteps = nextSteps.map(s => s.id === "ml" ? { ...s, status: "completed", data } : s.id === "ai" ? { ...s, status: "running" } : s);
+              } else if (eType === "ai_final") {
+                nextSteps = nextSteps.map(s => s.id === "ai" ? { ...s, status: "completed", data } : s);
+                return { ...r, verdict: data, steps: nextSteps, status: "completed" };
+              } else if (eType === "error") {
+                return { ...r, status: "error" };
+              }
+              return { ...r, steps: nextSteps };
+            }));
+            if (eType === "ai_final" || eType === "error") setAnalyzingDomain(null);
+          } catch { /* ignore */ }
         }
       }
-    } catch (error) {
-      setUrlResults((prev) =>
-        prev.map((r, i) =>
-          i === index
-            ? {
-                ...r,
-                status: "error",
-                steps: r.steps.map((s) =>
-                  s.status === "running"
-                    ? { ...s, status: "error", details: (error as Error).message }
-                    : s,
-                ),
-              }
-            : r,
-        ),
-      );
-      setAnalyzingDomain(null);
-    }
+    } catch { setAnalyzingDomain(null); }
   };
 
   const handleAnalyseEmail = async () => {
-    if (!emailData || !emailData.links?.length || !userId) return;
-
-    const initialResults: UrlAnalysisResult[] = emailData.links.map((link) => ({
-      url: link,
-      domain: extractDomain(link) || "",
-      steps: [],
-      verdict: null,
-      status: "pending" as const,
+    if (!emailData?.links?.length || !userId) return;
+    const initialResults: UrlAnalysisResult[] = emailData.links.map(link => ({
+      url: link, domain: extractDomain(link) || "", steps: [], verdict: null, status: "pending"
     }));
-
     setUrlResults(initialResults);
-    setCurrentUrlIndex(0);
     setShowAnalysis(true);
-    setAnalyzingDomain(null);
-
-    setTimeout(
-      () => analysisRef.current?.scrollIntoView({ behavior: "smooth" }),
-      100,
-    );
-
     for (let i = 0; i < emailData.links.length; i++) {
-      setCurrentUrlIndex(i);
       await analyzeSingleUrl(emailData.links[i], i);
     }
   };
 
-  // ─── shared style helpers ───────────────────────────────────────────────────
+  const Header = () => (
+    <div style={{ padding: "24px 20px", background: THEME.surface, borderBottom: `1px solid ${THEME.border}`, display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ width: 42, height: 42, background: `linear-gradient(135deg, ${THEME.primary} 0%, ${THEME.primaryHover} 100%)`, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 22, boxShadow: `0 4px 12px ${THEME.primary}33` }}>T</div>
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 18, color: THEME.textMain, lineHeight: 1.2, letterSpacing: "-0.02em" }}>TrustInbox</div>
+        <div style={{ fontSize: 12, color: THEME.textMute, fontWeight: 500 }}>AI Email Defense</div>
+      </div>
+    </div>
+  );
 
-  const card: React.CSSProperties = {
-    background: C.surface,
-    border: `1px solid ${C.border}`,
-    borderRadius: 12,
-    overflow: "hidden",
-  };
+  const StepDataDisplay = ({ step }: { step: AnalysisStep }) => {
+    if (!step.data || step.status !== "completed") return null;
 
-  const cardHead: React.CSSProperties = {
-    padding: "7px 12px",
-    borderBottom: `1px solid ${C.border}`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  };
-
-  const label10: React.CSSProperties = {
-    fontSize: 10,
-    fontWeight: 500,
-    color: C.textMuted,
-    letterSpacing: "0.1em",
-    textTransform: "uppercase",
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    padding: "9px 11px",
-    background: "#f1f5f9",
-    border: `1px solid ${C.border}`,
-    borderRadius: 8,
-    color: C.textPrimary,
-    fontSize: 12,
-    fontFamily: "inherit",
-    outline: "none",
-    boxSizing: "border-box",
-  };
-
-  const primaryBtn: React.CSSProperties = {
-    width: "100%",
-    padding: "11px 0",
-    background: C.violet,
-    border: "none",
-    borderRadius: 11,
-    color: C.textPrimary,
-    fontSize: 13,
-    fontWeight: 600,
-    cursor: "pointer",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    fontFamily: "inherit",
-    boxSizing: "border-box",
-  };
-
-  const disabledBtn: React.CSSProperties = {
-    background: "#1e2630",
-    color: "#334155",
-    cursor: "not-allowed",
-  };
-
-  // ─── render ─────────────────────────────────────────────────────────────────
-
-  return (
-    <div
-      style={{
-        height: "100vh",
-        width: "100v%",
-        background: C.bg,
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        minHeight: 500,
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-        fontSize: 13,
-        color: C.textPrimary,
-        boxSizing: "border-box",
-      }}
-    >
-      <style>{`@keyframes ti-spin { to { transform: rotate(360deg); } }`}</style>
-
-      {/* ── Header ── */}
-      <div
-        style={{
-          padding: "16px 14px 13px",
-          borderBottom: `1px solid ${C.border}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            background: C.violet,
-            borderRadius: 9,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <IconShield />
+    if (step.id === "dns") {
+      const d = step.data;
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 14px", marginTop: 10, padding: "12px", background: THEME.bg, borderRadius: 12, border: `1px solid ${THEME.border}` }}>
+          <div>
+            <div style={{ fontSize: 10, color: THEME.textMute, textTransform: "uppercase", fontWeight: 800, marginBottom: 2 }}>Domain Age</div>
+            <div style={{ fontSize: 13, color: THEME.textMain, fontWeight: 700 }}>{d.age_days ? `${d.age_days}d` : "N/A"}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 10, color: THEME.textMute, textTransform: "uppercase", fontWeight: 800, marginBottom: 2 }}>Global Reputation</div>
+            <div style={{ fontSize: 13, color: d.vt_reputation >= 0 ? THEME.safe : THEME.danger, fontWeight: 700 }}>{d.vt_reputation ?? 0}</div>
+          </div>
         </div>
-        <div>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: C.textPrimary,
-              lineHeight: 1,
-            }}
-          >
-            TrustInbox
+      );
+    }
+
+    if (step.id === "safebrowsing") {
+      return (
+        <div style={{ marginTop: 8, padding: "10px 14px", background: step.data.isSafe ? THEME.safeBg : THEME.dangerBg, borderRadius: 12, border: `1px solid ${step.data.isSafe ? THEME.safe : THEME.danger}22` }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: step.data.isSafe ? THEME.safe : THEME.danger }}>
+            {step.data.isSafe ? "✅ Safe: No known threats found" : `❌ Flagged: ${step.data.threatType || "Phishing Content"}`}
           </div>
-          <div
-            style={{
-              fontSize: 10,
-              color: C.textMuted,
-              marginTop: 3,
-              letterSpacing: "0.05em",
-              lineHeight: 1,
-            }}
-          >
-            Phishing Detection
+        </div>
+      );
+    }
+
+    if (step.id === "ml") {
+      const isGood = step.data.prediction === "good";
+      const confidence = Math.round((step.data.raw?.[step.data.prediction] || 0) * 100);
+      return (
+        <div style={{ marginTop: 8, padding: "10px 14px", background: isGood ? THEME.safeBg : THEME.dangerBg, borderRadius: 12, border: `1px solid ${isGood ? THEME.safe : THEME.danger}22` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: isGood ? THEME.safe : THEME.danger }}>
+              {isGood ? "Clean: Trusted Patterns" : "Suspect: Anomalous Behavior"}
+            </span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: THEME.textMute }}>{confidence}%</span>
           </div>
+          <div style={{ height: 4, background: `${isGood ? THEME.safe : THEME.danger}22`, borderRadius: 2, marginTop: 8, overflow: "hidden" }}>
+            <div style={{ width: `${confidence}%`, height: "100%", background: isGood ? THEME.safe : THEME.danger }} />
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  if (authStatus !== "logged-in") {
+    return (
+      <div style={{ height: "100vh", background: THEME.bg, fontFamily: "'Inter', sans-serif" }}>
+        <Header />
+        <div style={{ padding: "32px 24px", textAlign: "center" }}>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: THEME.textMain, marginBottom: 12 }}>Inbox Shield</h2>
+          <p style={{ color: THEME.textSec, fontSize: 14, marginBottom: 32 }}>Login to analyze links and attachments with AI.</p>
+          <input
+            style={{ width: "100%", padding: "14px 18px", borderRadius: 14, border: `1.5px solid ${THEME.border}`, marginBottom: 14, outline: "none" }}
+            placeholder="Work Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+          {authStatus === "otp-sent" && (
+            <input
+              style={{ width: "100%", padding: "14px 18px", borderRadius: 14, border: `1.5px solid ${THEME.primary}`, marginBottom: 14, textAlign: "center", fontSize: 18, letterSpacing: 8 }}
+              placeholder="000000"
+              value={otp}
+              onChange={e => setOtp(e.target.value)}
+            />
+          )}
+          <button
+            style={{ width: "100%", padding: "16px", background: THEME.primary, color: "white", borderRadius: 14, fontWeight: 700, border: "none" }}
+            onClick={authStatus === "otp-sent" ? handleVerifyOtp : handleSendOtp}
+          >
+            {authStatus === "otp-sent" ? "Verify Code" : "Continue"}
+          </button>
+          {message && (
+            <div style={{ marginTop: 16, fontSize: 13, color: message.toLowerCase().includes("invalid") || message.toLowerCase().includes("required") ? THEME.danger : THEME.primary, fontWeight: 600 }}>
+              {message}
+            </div>
+          )}
         </div>
       </div>
+    );
+  }
 
-      {/* ── Body ── */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: "10px 10px 0",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        {/* Auth panel */}
-        {authStatus !== "logged-in" && (
-          <div
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 12,
-              padding: 14,
-            }}
-          >
-            <div style={{ ...label10, marginBottom: 10 }}>Sign in</div>
-            <input
-              style={inputStyle}
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              disabled={isLoading}
-            />
-            <button
-              style={{
-                ...primaryBtn,
-                marginTop: 8,
-                ...(isLoading || authStatus === "otp-sent"
-                  ? {
-                      background: "#1e2630",
-                      color: "#fff",
-                      cursor: "not-allowed",
-                    }
-                  : {}),
-              }}
-              onClick={handleSendOtp}
-              disabled={isLoading || authStatus === "otp-sent"}
-            >
-              {isLoading && authStatus === "logged-out"
-                ? "Sending…"
-                : "Send code"}
-            </button>
-            {authStatus === "otp-sent" && (
-              <div
-                style={{
-                  marginTop: 10,
-                  paddingTop: 10,
-                  borderTop: `1px solid ${C.border}`,
-                }}
-              >
-                <input
-                  style={{
-                    ...inputStyle,
-                    textAlign: "center",
-                    letterSpacing: "0.3em",
-                  }}
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
-                  placeholder="· · · · · ·"
-                  disabled={isLoading}
-                />
-                <button
-                  style={{
-                    ...primaryBtn,
-                    marginTop: 8,
-                    background: "#1e2630",
-                    color: "#fff",
-                  }}
-                  onClick={handleVerifyOtp}
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Verifying…" : "Verify"}
-                </button>
-              </div>
-            )}
-            {message && (
-              <p
-                style={{
-                  fontSize: 11,
-                  marginTop: 8,
-                  color:
-                    message.includes("Error") || message.includes("fail")
-                      ? C.redText
-                      : C.greenText,
-                }}
-              >
-                {message}
-              </p>
-            )}
+  return (
+    <div style={{ height: "100vh", background: THEME.bg, fontFamily: "'Inter', sans-serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <style>{`@keyframes ti-spin { to { transform: rotate(360deg); } }`}</style>
+      <Header />
+
+      <div style={{ flex: 1, overflowY: "auto", padding: "20px", display: "flex", flexDirection: "column", gap: 20 }}>
+        {!emailData ? (
+          <div style={{ padding: "60px 24px", textAlign: "center", background: THEME.surface, borderRadius: 24, border: `1px solid ${THEME.border}` }}>
+            <div style={{ fontSize: 52, marginBottom: 20 }}>📬</div>
+            <h2 style={{ fontWeight: 800, color: THEME.textMain, fontSize: 18, marginBottom: 8 }}>Awaiting Email</h2>
+            <p style={{ color: THEME.textSec, fontSize: 14 }}>Open an email in Gmail to trigger the security scan.</p>
           </div>
-        )}
-
-        {/* Logged-in states */}
-        {authStatus === "logged-in" && (
+        ) : (
           <>
-            {/* No email */}
-            {!emailData && (
-              <div
-                style={{
-                  border: `1px dashed ${C.border}`,
-                  borderRadius: 12,
-                  padding: "24px 16px",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    background: C.border,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    margin: "0 auto 10px",
-                  }}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke={C.textMuted}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <p style={{ fontSize: 12, color: C.textMuted }}>
-                  No email open
-                </p>
-                <p style={{ fontSize: 10, color: C.textDim, marginTop: 3 }}>
-                  Open a Gmail message to begin
-                </p>
+            {/* Context Card */}
+            <div style={{ background: THEME.surface, padding: "24px", borderRadius: 24, border: `1px solid ${THEME.border}`, boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
+              <div style={{ fontSize: 10, color: THEME.textMute, textTransform: "uppercase", fontWeight: 800, letterSpacing: "0.1em", marginBottom: 12 }}>Analysis Context</div>
+              <div style={{ fontWeight: 800, fontSize: 18, color: THEME.textMain, marginBottom: 6, lineHeight: 1.3 }}>
+                {emailData.subject ? (emailData.subject.length > 50 ? emailData.subject.substring(0, 50) + "..." : emailData.subject) : "No Subject"}
               </div>
-            )}
-
-            {/* Links */}
-            {emailData && emailData.links?.length > 0 && (
-              <div style={{ ...card, height: "50%" }}>
-                <div style={cardHead}>
-                  <span style={label10}>Links found</span>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      color: C.textMuted,
-                      background: C.border,
-                      padding: "2px 6px",
-                      borderRadius: 5,
-                    }}
-                  >
-                    {emailData.links?.length}
-                  </span>
-                </div>
-                <div style={{ overflowY: "auto" }}>
-                  {emailData.links.map((link, i) => (
-                    <a
-                      key={i}
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "7px 12px",
-                        borderTop:
-                          i === 0 ? "none" : `1px solid ${C.borderFaint}`,
-                        textDecoration: "none",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: "50%",
-                          background: C.violet,
-                          flexShrink: 0,
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: 11,
-                          color: C.textMuted,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {extractDomain(link) || link}
-                      </span>
-                    </a>
-                  ))}
-                </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: THEME.primary }} />
+                <div style={{ fontSize: 14, color: THEME.textSec, fontWeight: 600 }}>{emailData.senderEmail || "Sender Unknown"}</div>
               </div>
-            )}
+            </div>
 
-            {emailData && emailData.links?.length === 0 && (
-              <div
-                style={{
-                  border: `1px dashed ${C.border}`,
-                  borderRadius: 12,
-                  padding: "16px",
-                  textAlign: "center",
-                }}
-              >
-                <p style={{ fontSize: 12, color: C.textMuted }}>
-                  No links found in this email
-                </p>
-              </div>
-            )}
+            {/* Analysis List */}
+            {urlResults.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: THEME.textMain, paddingLeft: 4 }}>Embedded Links Found ({urlResults.length})</div>
 
-            {/* Analysis */}
-            {showAnalysis && urlResults.length > 0 && (
-              <div
-                ref={analysisRef}
-                style={{ ...card, maxHeight: "70%", overflowY: "auto" }}
-              >
-                <div style={cardHead}>
-                  <span style={label10}>
-                    Analysis ({currentUrlIndex + 1}/{urlResults.length})
-                  </span>
-                  {analyzingDomain && (
-                    <span
-                      style={{
-                        fontSize: 10,
-                        color: C.runningColor,
-                        maxWidth: 120,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {analyzingDomain}
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ overflowY: "auto" }}>
-                  {urlResults.map((result, rIdx) => (
-                    <div key={rIdx}>
-                      <div
-                        style={{
-                          padding: "8px 12px",
-                          background:
-                            rIdx === currentUrlIndex && result.status === "analyzing"
-                              ? "rgba(99,102,241,0.08)"
-                              : "transparent",
-                          borderBottom: `1px solid ${C.borderFaint}`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          {result.status === "completed" && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.green} strokeWidth="2">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          )}
-                          {result.status === "analyzing" && <Spinner size={14} />}
-                          {result.status === "error" && (
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.red} strokeWidth="2">
-                              <circle cx="12" cy="12" r="10" />
-                              <path d="M15 9l-6 6M9 9l6 6" />
-                            </svg>
-                          )}
-                          {result.status === "pending" && (
-                            <div style={{ width: 14, height: 14, borderRadius: "50%", background: C.border }} />
-                          )}
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 500,
-                              color: C.textPrimary,
-                              maxWidth: 180,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {result.domain || result.url}
-                          </span>
+                {urlResults.map((res, idx) => (
+                  <div key={idx} style={{ background: THEME.surface, borderRadius: 24, border: `1.5px solid ${res.status === 'analyzing' ? THEME.primary + '33' : THEME.border}`, overflow: "hidden", transition: "all 0.3s ease" }}>
+                    <div style={{ padding: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: THEME.textMain, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{res.domain || res.url}</div>
+                        <div style={{ fontSize: 12, color: THEME.textMute, marginTop: 4, fontWeight: 600 }}>{res.status === "completed" ? "Deep Intelligence Report" : res.status === "analyzing" ? "Analyzing with AI..." : "Pending Scan"}</div>
+                      </div>
+                      {res.verdict ? (
+                        <div style={{ padding: "8px 14px", borderRadius: 12, background: verdictStyles[res.verdict.verdict].bg, color: verdictStyles[res.verdict.verdict].color, fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
+                          {res.verdict.verdict}
                         </div>
-                        {result.verdict && (
-                          <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 600,
-                              padding: "2px 6px",
-                              borderRadius: 4,
-                              background:
-                                result.verdict.verdict === "SAFE"
-                                  ? "rgba(16,185,129,0.15)"
-                                  : result.verdict.verdict === "SUSPICIOUS"
-                                    ? "rgba(245,158,11,0.15)"
-                                    : "rgba(239,68,68,0.15)",
-                              color:
-                                result.verdict.verdict === "SAFE"
-                                  ? C.greenText
-                                  : result.verdict.verdict === "SUSPICIOUS"
-                                    ? C.amberText
-                                    : C.redText,
-                            }}
-                          >
-                            {result.verdict.verdict}
-                          </span>
+                      ) : res.status === "analyzing" ? <Spinner size={18} /> : null}
+                    </div>
+
+                    {res.status !== "pending" && res.steps.length > 0 && (
+                      <div style={{ padding: "0 20px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+                        <div style={{ height: 1.5, background: THEME.bg }} />
+                        
+                        {res.steps.map(step => (
+                          <div key={step.id}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <div>
+                                <div style={{ fontSize: 13, color: THEME.textMain, fontWeight: 800 }}>{step.title}</div>
+                                <div style={{ fontSize: 11, color: THEME.textMute, fontWeight: 500 }}>{step.desc}</div>
+                              </div>
+                              {step.status === "running" ? <Spinner size={12} /> : step.status === "completed" ? <span style={{ color: THEME.safe }}>✓</span> : null}
+                            </div>
+                            <StepDataDisplay step={step} />
+                          </div>
+                        ))}
+
+                        {res.verdict && (
+                          <div style={{ marginTop: 10, padding: "18px", background: THEME.bg, borderRadius: 20, border: `1.5px solid ${THEME.border}` }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: THEME.textMain, marginBottom: 10 }}>🛡️ AI Security Recommendation</div>
+                            <div style={{ fontSize: 13, color: THEME.textSec, lineHeight: 1.6, fontWeight: 600 }}>{res.verdict.recommendation}</div>
+                            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+                              {res.verdict.reasons.map((reason, rIdx) => (
+                                <div key={rIdx} style={{ fontSize: 12, color: THEME.textMute, display: "flex", gap: 10, lineHeight: 1.4 }}>
+                                  <span style={{ color: THEME.primary }}>•</span> {reason}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
-
-                      {result.status !== "pending" && result.steps.length > 0 && (
-                        <div style={{ padding: "8px 12px", background: "rgba(0,0,0,0.02)" }}>
-                          {result.steps.map((step, idx) => (
-                            <div
-                              key={step.id}
-                              style={{
-                                padding: "6px 0",
-                                borderTop: idx === 0 ? "none" : `1px solid ${C.borderFaint}`,
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <StepIcon status={step.status} />
-                                <span
-                                  style={{
-                                    fontSize: 11,
-                                    fontWeight: 500,
-                                    color: step.status === "completed" ? C.textPrimary : step.status === "running" ? C.runningColor : step.status === "error" ? C.redText : "#334155",
-                                  }}
-                                >
-                                  {step.title}
-                                </span>
-                              </div>
-
-                              {step.data && step.id === "dns" && (
-                                <div style={{ marginTop: 4, marginLeft: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 8px" }}>
-                                  {([
-                                    { k: "Domain", v: (step.data as any).domain, c: C.textSecondary },
-                                    { k: "Age", v: `${(step.data as any).age_days}d`, c: C.textSecondary },
-                                    { k: "DNSSEC", v: (step.data as any).dnssec_valid ? "Valid" : "Unsigned", c: (step.data as any).dnssec_valid ? C.greenText : C.amberText },
-                                    { k: "Flux", v: (step.data as any).flux_score, c: C.textSecondary },
-                                    { k: "VT", v: (step.data as any).vt_malicious, c: (step.data as any).vt_malicious > 0 ? C.redText : C.greenText },
-                                    { k: "Rep", v: (step.data as any).vt_reputation, c: C.textSecondary },
-                                  ] as { k: string; v: unknown; c: string }[]).map(({ k, v, c }) => (
-                                    <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
-                                      <span style={{ fontSize: 9, color: "#334155" }}>{k}</span>
-                                      <span style={{ fontSize: 9, fontWeight: 500, color: c }}>{String(v)}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {step.data && step.id === "safebrowsing" && (
-                                <div style={{ marginTop: 4, marginLeft: 24 }}>
-                                  <span style={{ fontSize: 9, fontWeight: 500, padding: "2px 6px", borderRadius: 4, background: (step.data as any).isSafe ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)", color: (step.data as any).isSafe ? C.greenText : C.redText }}>
-                                    {(step.data as any).isSafe ? "Safe" : "Threats"}
-                                  </span>
-                                </div>
-                              )}
-
-                              {step.data && step.id === "ml" && (
-                                <div style={{ marginTop: 4, marginLeft: 24, display: "flex", gap: 8 }}>
-                                  <span style={{ fontSize: 9, fontWeight: 500, padding: "2px 6px", borderRadius: 4, background: (step.data as any).prediction === "good" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)", color: (step.data as any).prediction === "good" ? C.greenText : C.redText }}>
-                                    {(step.data as any).prediction === "good" ? "Legitimate" : "Malicious"}
-                                  </span>
-                                  <span style={{ fontSize: 9, color: C.textMuted }}>{Math.round((step.data as any).raw?.good * 100)}%</span>
-                                </div>
-                              )}
-
-                              {step.details && <p style={{ marginTop: 2, marginLeft: 24, fontSize: 9, color: C.redText }}>{step.details}</p>}
-                            </div>
-                          ))}
-
-                          {result.verdict && (() => {
-                            const cfg = verdictCfg[result.verdict.verdict] ?? verdictCfg.SUSPICIOUS;
-                            return (
-                              <div style={{ margin: "8px 0", borderRadius: 8, padding: "8px 10px", border: `1px solid ${cfg.border}`, background: cfg.bg }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                                  <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", background: cfg.badge, padding: "2px 6px", borderRadius: 4 }}>{result.verdict.verdict}</span>
-                                  <span style={{ fontSize: 9, color: C.textMuted }}>{Math.round(result.verdict.confidence * 100)}%</span>
-                                </div>
-                                <p style={{ fontSize: 10, color: cfg.text, marginBottom: 4, lineHeight: 1.4 }}>{result.verdict.recommendation}</p>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                  {result.verdict.reasons.map((r, i) => (
-                                    <div key={i} style={{ display: "flex", gap: 4, alignItems: "flex-start" }}>
-                                      <div style={{ width: 3, height: 3, borderRadius: "50%", background: cfg.dot, marginTop: 4, flexShrink: 0 }} />
-                                      <span style={{ fontSize: 9, color: C.textMuted, lineHeight: 1.4 }}>{r}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </>
         )}
-
-        <div style={{ height: 4, flexShrink: 0 }} />
       </div>
 
-      {/* ── Footer ── */}
-      {authStatus === "logged-in" && (
-        <div
-          style={{
-            padding: "10px 10px 14px",
-            borderTop: `1px solid ${C.border}`,
-            flexShrink: 0,
-          }}
-        >
-          <button
-            type="button"
-            style={{
-              ...primaryBtn,
-              ...(!emailData ||
-              !emailData.links?.length ||
-              analyzingDomain !== null
-                ? disabledBtn
-                : {}),
-            }}
-            onClick={handleAnalyseEmail}
-            disabled={
-              !emailData || !emailData.links?.length || analyzingDomain !== null
-            }
-          >
-            {analyzingDomain ? (
-              <>
-                <Spinner />
-                <span>Analysing…</span>
-              </>
-            ) : (
-              <>
-                <svg
-                  width="15"
-                  height="15"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                  />
-                </svg>
-                <span>Analyse email</span>
-              </>
-            )}
-          </button>
-          <p
-            style={{
-              fontSize: 10,
-              color: C.textDim,
-              textAlign: "center",
-              marginTop: 6,
-            }}
-          >
-            TrustInbox © 2026
-          </p>
-        </div>
-      )}
+      <div style={{ padding: "20px", textAlign: "center", borderTop: `1px solid ${THEME.border}`, background: THEME.surface }}>
+        <div style={{ fontSize: 11, color: THEME.textMute, fontWeight: 700, letterSpacing: "0.1em" }}>PROTECTED BY TRUSTINBOX CORE</div>
+      </div>
     </div>
   );
 }

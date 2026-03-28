@@ -2,135 +2,100 @@
 (() => {
   function extractEmailDetails() {
     try {
+      // 1. Get Subject - Targeting Gmail's specific H2 or data attributes
+      let subject = "";
+      const subjectSelectors = [
+        'h2.hP', // Gmail's main subject line class
+        '[data-subject]',
+        'h1'
+      ];
+      for (const sel of subjectSelectors) {
+        const el = document.querySelector(sel);
+        if (el && el.textContent?.trim()) {
+          subject = el.textContent.trim();
+          // Filter out junk if it contains common Gmail UI words
+          if (subject.toLowerCase().includes('search') && subject.toLowerCase().includes('gemini')) continue;
+          break;
+        }
+      }
+
+      // 2. Get Sender Email
+      let senderEmail = "";
+      const senderSelectors = [
+        'span[email]', // Gmail specific attribute
+        '[data-hovercard-id]', // Often contains the email
+        '[data-email]',
+        'span.gD' // Common sender name/email container
+      ];
+      for (const sel of senderSelectors) {
+        const el = document.querySelector(sel);
+        if (el) {
+          senderEmail = el.getAttribute('email') || el.getAttribute('data-hovercard-id') || el.getAttribute('data-email') || "";
+          if (senderEmail && senderEmail.includes('@')) break;
+          // Try text content if attributes fail
+          const text = el.textContent || "";
+          const match = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+          if (match) { senderEmail = match[0]; break; }
+        }
+      }
+
+      // 3. Get Email Body & Links
       const emailSelectors = [
         '[data-message-id] [role="presentation"]',
         '.a3s.aiL',
         '[role="main"] [role="article"]',
-        '[data-message-id]',
-        '.gs',
-        '[itemprop="description"]'
+        '.gs'
       ];
 
       let emailElement = null;
       for (const selector of emailSelectors) {
         emailElement = document.querySelector(selector);
-        if (emailElement && emailElement.textContent?.trim()) {
-          break;
-        }
+        if (emailElement && emailElement.textContent?.trim()) break;
       }
 
-      if (!emailElement) {
-        emailElement = document.body;
-      }
+      if (!emailElement) emailElement = document.body;
 
       const clonedElement = emailElement.cloneNode(true) as Element;
-
-      const styles = clonedElement.querySelectorAll('style');
-      styles.forEach((style) => { style.remove(); });
-
-      const scripts = clonedElement.querySelectorAll('script');
-      scripts.forEach((script) => { script.remove(); });
-
-      const linkTags = clonedElement.querySelectorAll('link[rel="stylesheet"]');
-      linkTags.forEach((link) => { link.remove(); });
+      clonedElement.querySelectorAll('style, script, link').forEach(el => el.remove());
 
       const body = clonedElement.textContent?.trim() || "";
-
       const links: string[] = [];
-      const anchorLinks = clonedElement.querySelectorAll('a[href]');
-      anchorLinks.forEach((anchor) => {
+      clonedElement.querySelectorAll('a[href]').forEach((anchor) => {
         const href = anchor.getAttribute('href');
         if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
           links.push(href);
         }
       });
 
-      let senderEmail = "";
-      const senderElement = document.querySelector('[data-email]');
-      if (senderElement) {
-        senderEmail = senderElement.getAttribute('data-email') || "";
-      }
-      if (!senderEmail) {
-        const fromElements = document.querySelectorAll('[name="from"]');
-        for (const el of fromElements) {
-          const value = el.getAttribute('value');
-          if (value && value.includes('@')) {
-            senderEmail = value;
-            break;
-          }
-        }
-      }
-      if (!senderEmail) {
-        const fromDivs = document.querySelectorAll('div[dir="ltr"]');
-        for (const div of fromDivs) {
-          const text = div.textContent || "";
-          const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-          if (emailMatch) {
-            senderEmail = emailMatch[0];
-            break;
-          }
-        }
-      }
-
-      let subject = "";
-      const subjectElement = document.querySelector('[data-subject]');
-      if (subjectElement) {
-        subject = subjectElement.getAttribute('data-subject') || "";
-      }
-      if (!subject) {
-        const h1 = document.querySelector('h1');
-        if (h1) subject = h1.textContent || "";
-      }
-      if (!subject) {
-        const title = document.querySelector('title');
-        if (title) subject = title.textContent || "";
-      }
-
-      return {
-        senderEmail,
-        subject,
-        body,
-        links,
-      };
+      return { senderEmail, subject, body, links };
     } catch (error) {
       console.error('Error extracting email:', error);
       return null;
     }
   }
 
-  // Function to request opening the side panel
   function requestOpenSidePanel() {
     chrome.runtime.sendMessage({ action: 'openSidePanel' });
   }
 
-  // Attach listeners to Gmail's email rows to try to open the panel on click
   function attachClickListeners() {
-    // Gmail email rows usually have the class 'zA'
     const rows = document.querySelectorAll('.zA:not(.trustinbox-listener-attached)');
     rows.forEach(row => {
       row.classList.add('trustinbox-listener-attached');
       row.addEventListener('click', () => {
-        // Since this click is a user gesture, we can request opening the side panel
-        // Wait a bit for Gmail to actually load the email view
         setTimeout(requestOpenSidePanel, 500);
       }, { capture: true });
     });
   }
 
-  // Check if we are on Gmail and attach listeners
   function checkGmailAndInit() {
     if (window.location.hostname.includes('mail.google.com')) {
       attachClickListeners();
     }
   }
 
-  // Initial check
   checkGmailAndInit();
-
-  // Watch for changes (Gmail is an SPA)
-  const observer = new MutationObserver(() => {
-    checkGmailAndInit();
-  });
+  const observer = new MutationObserver(() => checkGmailAndInit());
   observer.observe(document.body, { childList: true, subtree: true });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
