@@ -3,7 +3,6 @@ import Head from "next/head";
 import {
     ShieldCheck,
     Download,
-    // Chrome,
     Compass,
     Shield,
     Globe,
@@ -32,16 +31,36 @@ import {
 import { Canvas } from "@react-three/fiber";
 import WireframeSphere from "./components/WireframeSphere";
 import ParticleSphere from "./components/ParticleSphere";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useEffect } from "react";
 
 export default function Home() {
+    const router = useRouter();
+
+    useEffect(() => {
+        const els = document.querySelectorAll("[data-reveal]");
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((e) => {
+                    if (e.isIntersecting) {
+                        e.target.classList.add("is-visible");
+                        observer.unobserve(e.target);
+                    }
+                });
+            },
+            { threshold: 0.12 }
+        );
+        els.forEach((el) => observer.observe(el));
+        return () => observer.disconnect();
+    }, []);
+
     return (
         <>
             <Head>
                 <meta charSet="utf-8" />
                 <meta content="width=device-width, initial-scale=1.0" name="viewport" />
                 <title>PhishGuard | AI-Powered Phishing Protection</title>
-                {/* <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script> */}
                 <link
                     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap"
                     rel="stylesheet"
@@ -69,6 +88,20 @@ export default function Home() {
                 }
                 .hero-glow { box-shadow: 0 0 40px rgba(193, 133, 253, 0.2); }
                 .tight-heading { letter-spacing: -0.04em; }
+
+                /* Scroll reveal */
+                [data-reveal] {
+                    opacity: 0;
+                    transform: translateY(70px);
+                    scale: 0.85;
+                    transition: opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+                                transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+                }
+                [data-reveal].is-visible {
+                    opacity: 1;
+                    scale: 1;
+                    transform: translateY(0);
+                }
             `}</style>
             <body className="bg-[#050510] text-[#e6e3fb] font-body selection:bg-[#cb97ff]/30">
                 {/* TopNavBar */}
@@ -89,14 +122,17 @@ export default function Home() {
                                 Privacy
                             </a>
                         </div>
-                        <button className="bg-[#cb97ff] text-[#000000] px-6 py-2.5 rounded-full font-bold hover:scale-95 transition-transform active:scale-90 hero-glow text-sm">
+                        <button
+                            onClick={() => router.push("/login-or-signup")}
+                            className="bg-[#cb97ff] text-[#000000] px-6 py-2.5 rounded-full font-bold hover:scale-95 transition-transform active:scale-90 hero-glow text-sm"
+                        >
                             Add to Chrome
                         </button>
                     </div>
                 </nav>
 
                 <main className="relative overflow-hidden">
-                    {/* Hero Section */}
+                    {/* Hero Section — no data-reveal, always visible on load */}
                     <section className="relative min-h-screen pt-32 pb-20 flex flex-col items-center justify-center px-8 overflow-hidden">
                         <div className="absolute inset-0 -z-10 mesh-gradient"></div>
                         <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center">
@@ -114,7 +150,10 @@ export default function Home() {
                                     attacks. Real-time AI protection.
                                 </p>
                                 <div className="flex flex-wrap gap-4 pt-4">
-                                    <button className="px-8 py-4 bg-[#cb97ff] text-[#000000] rounded-full font-bold text-lg hover:brightness-110 transition-all flex items-center gap-2 hero-glow">
+                                    <button
+                                        onClick={() => router.push("/login-or-signup")}
+                                        className="px-8 py-4 bg-[#cb97ff] text-[#000000] rounded-full font-bold text-lg hover:brightness-110 transition-all flex items-center gap-2 hero-glow"
+                                    >
                                         <Download className="w-5 h-5" />
                                         Add to Chrome
                                     </button>
@@ -156,28 +195,10 @@ export default function Home() {
                         </div>
                     </section>
 
-                    {/* Section 2: How it Does It */}
-                    <section className="py-32 px-8 bg-[#121223]/30 relative">
+                    {/* Section 2: Intelligent Analysis */}
+                    <section data-reveal className="py-32 px-8 bg-[#121223]/30 relative">
                         <div className="max-w-7xl mx-auto">
                             <div className="grid lg:grid-cols-2 gap-20 items-center">
-                                {/* <div className="relative aspect-video glass-panel rounded-2xl overflow-hidden flex items-center justify-center p-12 shadow-2xl">
-                                    <div className="absolute inset-0 bg-[#cb97ff]/5"></div>
-                                    <div className="relative space-y-6 w-full">
-                                        <div className="h-2.5 w-3/4 bg-[#18182b] rounded-full opacity-50"></div>
-                                        <div className="h-2.5 w-1/2 bg-[#18182b] rounded-full opacity-30"></div>
-                                        <div className="flex gap-4 items-center">
-                                            <div className="h-10 w-10 rounded-full bg-[#cb97ff]/20 flex items-center justify-center">
-                                                <div className="w-4 h-4 rounded-full bg-[#cb97ff]/40"></div>
-                                            </div>
-                                            <div className="h-10 flex-1 bg-[#cb97ff]/10 rounded-xl"></div>
-                                        </div>
-                                        <div className="h-2.5 w-full bg-[#18182b] rounded-full opacity-20"></div>
-                                        <div className="pt-8 flex justify-center">
-                                            <BarChart2 className="w-20 h-20 text-[#cb97ff] animate-pulse" strokeWidth={1.5} />
-                                        </div>
-                                    </div>
-                                </div> */}
-
                                 <div className="relative w-full h-[300px]">
                                     <Image src="/analytic.jpeg" alt="" fill className="rounded-2xl object-cover" />
                                 </div>
@@ -203,7 +224,7 @@ export default function Home() {
                     </section>
 
                     {/* Section 3: How it Works - 3 Steps */}
-                    <section className="py-32 px-8">
+                    <section data-reveal className="py-32 px-8">
                         <div className="max-w-7xl mx-auto text-center mb-24">
                             <h2 className="text-4xl md:text-5xl font-headline font-extrabold tight-heading mb-6">Simple 3-Step Protection</h2>
                             <div className="w-16 h-1 bg-[#cb97ff] mx-auto rounded-full"></div>
@@ -252,7 +273,7 @@ export default function Home() {
                     </section>
 
                     {/* Section 4: Alert Preview */}
-                    <section className="py-24 px-8 bg-[#121223]/50">
+                    <section data-reveal className="py-24 px-8 bg-[#121223]/50">
                         <div className="max-w-5xl mx-auto">
                             <div className="glass-panel p-10 md:p-14 rounded-3xl border-l-8 border-l-[#ff6e84] shadow-2xl relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-12 opacity-[0.03]">
@@ -301,7 +322,7 @@ export default function Home() {
                     </section>
 
                     {/* Section 5: Features Grid */}
-                    <section className="py-32 px-8">
+                    <section data-reveal className="py-32 px-8">
                         <div className="max-w-7xl mx-auto grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {[
                                 {
@@ -338,7 +359,7 @@ export default function Home() {
                     </section>
 
                     {/* Section 6: Privacy & Security */}
-                    <section className="py-32 px-8 bg-[#000000]/80 border-y border-white/5">
+                    <section data-reveal className="py-32 px-8 bg-[#000000]/80 border-y border-white/5">
                         <div className="max-w-7xl mx-auto text-center">
                             <div className="inline-flex p-4 bg-[#9093ff]/10 rounded-2xl mb-10 border border-[#9093ff]/20">
                                 <Lock className="text-[#9093ff] w-12 h-12" strokeWidth={1.5} />
@@ -368,7 +389,7 @@ export default function Home() {
                     </section>
 
                     {/* Final CTA Section */}
-                    <section className="py-40 px-8 relative overflow-hidden">
+                    <section data-reveal className="py-40 px-8 relative overflow-hidden">
                         <div className="absolute inset-0 mesh-gradient opacity-30 -z-10"></div>
                         <div className="max-w-4xl mx-auto text-center space-y-12">
                             <h2 className="text-5xl md:text-7xl font-headline font-extrabold tight-heading leading-tight">
@@ -407,51 +428,19 @@ export default function Home() {
                         <div>
                             <h5 className="text-white font-bold mb-8 uppercase tracking-widest text-xs">Product</h5>
                             <ul className="space-y-4 font-body text-sm">
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        How it Works
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Features
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Pricing
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Enterprise
-                                    </a>
-                                </li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">How it Works</a></li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Features</a></li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Pricing</a></li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Enterprise</a></li>
                             </ul>
                         </div>
                         <div>
                             <h5 className="text-white font-bold mb-8 uppercase tracking-widest text-xs">Support</h5>
                             <ul className="space-y-4 font-body text-sm">
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Privacy Policy
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Security Docs
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Contact Us
-                                    </a>
-                                </li>
-                                <li>
-                                    <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                        Help Center
-                                    </a>
-                                </li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Privacy Policy</a></li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Security Docs</a></li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Contact Us</a></li>
+                                <li><a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">Help Center</a></li>
                             </ul>
                         </div>
                         <div>
@@ -472,12 +461,8 @@ export default function Home() {
                     <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                         <p className="text-[#aba9bf] text-sm font-body">© 2024 PhishGuard AI. All rights reserved.</p>
                         <div className="flex gap-8">
-                            <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                <Share2 className="w-5 h-5" />
-                            </a>
-                            <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#">
-                                <AtSign className="w-5 h-5" />
-                            </a>
+                            <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#"><Share2 className="w-5 h-5" /></a>
+                            <a className="text-[#aba9bf] hover:text-[#cb97ff] transition-all" href="#"><AtSign className="w-5 h-5" /></a>
                         </div>
                     </div>
                 </footer>
